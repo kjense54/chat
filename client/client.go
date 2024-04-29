@@ -6,6 +6,9 @@ import (
 	"net"
 	"time"	
 	"fmt"
+	"bufio"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -19,33 +22,23 @@ func main() {
 	}
 	defer conn.Close()
 	
-	// client loop
+	var input string
 	for {
-		// input channel
-		inputCh := make(chan string)
-		go func() {
-			var client_input string
-			for {
-				fmt.Scanln(&client_input)
-				inputCh <- client_input
-			}
-		}()
-	
-		// write test message
-		go func() {
-			message := ("Hello from client!")
-			
-			if _, err := conn.Write([]byte(string(len(message)) + message)); err != nil {
-				log.Fatal(err)
-			}
-		}()
+		reader := bufio.NewReader(os.Stdin)
+		input, err = reader.ReadString('\n')
+		if err != nil {
+			log.Fatalf("Error reading input: %v", err)
+		}
+		input = strings.TrimSpace(input)
 
 		// quit client
-		select {
-		case input := <-inputCh:
-			if input == "/quit" {
-				fmt.Println("Quitting")
-				return
+		if input == "/quit" {
+			fmt.Println("Quitting")
+			return
+		} else {
+			// write test message
+			if _, err := conn.Write([]byte(string(len(input)) + input)); err != nil {
+				log.Fatal(err)
 			}
 		}
 	}

@@ -45,9 +45,9 @@ func main() {
 	// close listener after main ends
 	defer l.Close()
 
+	fmt.Println("Server Started")
 
 	for {
-		fmt.Println("Server Started")
 		// input channel
 		inputCh := make(chan string)
 		go func() {
@@ -60,12 +60,14 @@ func main() {
 		
 		// wait for connection
 		go func() {
+			for {
 			conn, err := l.Accept()
 			if err != nil {
 				log.Fatal(err)
 			}
 			fmt.Println("Client ", conn.RemoteAddr().String(), " Connected!")
 			go handleConnection(conn)
+			}
 		}()
 
 		//quit server
