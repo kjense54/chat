@@ -6,6 +6,8 @@ import (
 	"log"
 	"fmt"
 	"bufio"
+//	"sync"
+//	"github.com/google/uuid"
 )
 
 func handleConnection(conn net.Conn) {
@@ -22,7 +24,6 @@ func handleConnection(conn net.Conn) {
 		//read first byte for message length
 		size, err := c.ReadByte()
 		if err != nil {
-			fmt.Println("Client disconnected")
 			return	
 		}
 		// read full message
@@ -44,40 +45,41 @@ func main() {
 	}
 	// close listener after main ends
 	defer l.Close()
+	
+	// sync.Map to deal with concurrency
+	//var connMap = &sync.Map{}
 
-	fmt.Println("Server Started")
+	// get server input
+	quitCh := make(chan string)
+	go func() {
+		var serverInput string
+		for {
+			fmt.Scanln(&serverInput)
+			quitCh <- serverInput
+		}
+	}()
 
-	for {
-		// input channel
-		inputCh := make(chan string)
-		go func() {
-			var server_input string 
-			for {
-				fmt.Scanln(&server_input)
-				inputCh <- server_input
-			}
-		}()
-		
-		// wait for connection
-		go func() {
-			for {
+	// Listen for new clients in goroutine to not block server input handling 
+	go func() {
+		for {
 			conn, err := l.Accept()
 			if err != nil {
 				log.Fatal(err)
 			}
 			fmt.Println("Client ", conn.RemoteAddr().String(), " Connected!")
 			go handleConnection(conn)
-			}
-		}()
-
-		//quit server
+		}	
+	}()
+	
+	// Handle server input
+	for {
 		select {
-		case input := <-inputCh:
-			if input == "/quit" {
-				fmt.Println("Quitting")
+		case input := <- quitCh:
+			if input == "/quit" { 
+				fmt.Println("Quitting Server")
+				l.Close()
 				return
 			}
 		}
-
 	}
 }	
